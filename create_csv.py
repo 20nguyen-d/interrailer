@@ -1,0 +1,216 @@
+import csv
+
+# Dataset notes:
+# - time_hours = approximate fastest/typical rail journey time, rounded for IA modelling
+# - scenic_score: 5 = neutral, 6-7 = pleasant, 8-9 = especially scenic, 10 = iconic scenic route
+# - changes = approximate number of changes within this city-to-city journey option
+# - Only include each pair once because the main program automatically adds the reverse route.
+
+routes = [
+    # UK / Eurostar core routes
+    ["London", "Paris", 2.3, 5, 0],
+    ["London", "Brussels", 2.0, 5, 0],
+    ["London", "Amsterdam", 4.1, 5, 0],
+    ["London", "Cologne", 4.8, 5, 1],
+    ["London", "Frankfurt", 5.7, 5, 1],
+    ["London", "Berlin", 8.8, 5, 1],
+    ["London", "Zurich", 7.8, 6, 1],
+    ["London", "Geneva", 6.3, 6, 1],
+    ["London", "Lyon", 5.2, 5, 1],
+
+    # Paris hub
+    ["Paris", "Brussels", 1.4, 5, 0],
+    ["Paris", "Amsterdam", 3.3, 5, 0],
+    ["Paris", "Cologne", 3.2, 5, 0],
+    ["Paris", "Frankfurt", 3.8, 5, 0],
+    ["Paris", "Berlin", 7.9, 5, 0],
+    ["Paris", "Zurich", 4.1, 6, 0],
+    ["Paris", "Geneva", 3.1, 6, 0],
+    ["Paris", "Lyon", 2.0, 5, 0],
+    ["Paris", "Barcelona", 6.3, 6, 0],
+    ["Paris", "Nice", 5.8, 6, 0],
+    ["Paris", "Milan", 7.0, 6, 1],
+    ["Paris", "Munich", 5.8, 5, 1],
+    ["Paris", "Vienna", 10.0, 6, 1],
+    ["Paris", "Prague", 11.0, 6, 1],
+    ["Paris", "Venice", 10.5, 7, 1],
+    ["Paris", "Florence", 10.0, 7, 1],
+    ["Paris", "Rome", 11.3, 7, 1],
+
+    # Belgium / Netherlands / Germany-west
+    ["Brussels", "Amsterdam", 2.0, 5, 0],
+    ["Brussels", "Cologne", 1.8, 5, 0],
+    ["Brussels", "Frankfurt", 3.0, 5, 0],
+    ["Brussels", "Berlin", 6.8, 5, 1],
+    ["Brussels", "Munich", 6.5, 5, 1],
+    ["Brussels", "Zurich", 6.8, 6, 1],
+
+    ["Amsterdam", "Cologne", 2.7, 5, 0],
+    ["Amsterdam", "Frankfurt", 4.0, 5, 0],
+    ["Amsterdam", "Berlin", 6.3, 5, 0],
+    ["Amsterdam", "Hamburg", 5.2, 5, 1],
+    ["Amsterdam", "Munich", 7.5, 5, 1],
+    ["Amsterdam", "Zurich", 8.0, 6, 1],
+    ["Amsterdam", "Prague", 9.5, 6, 1],
+    ["Amsterdam", "Vienna", 11.0, 6, 1],
+
+    ["Cologne", "Frankfurt", 1.1, 5, 0],
+    ["Cologne", "Berlin", 4.5, 5, 0],
+    ["Cologne", "Hamburg", 4.0, 5, 0],
+    ["Cologne", "Munich", 4.6, 5, 0],
+    ["Cologne", "Zurich", 5.0, 6, 1],
+    ["Cologne", "Vienna", 8.0, 6, 1],
+    ["Cologne", "Prague", 8.0, 7, 1],
+
+    ["Frankfurt", "Berlin", 4.0, 5, 0],
+    ["Frankfurt", "Hamburg", 3.8, 5, 0],
+    ["Frankfurt", "Munich", 3.3, 5, 0],
+    ["Frankfurt", "Zurich", 4.0, 6, 0],
+    ["Frankfurt", "Geneva", 5.8, 6, 1],
+    ["Frankfurt", "Vienna", 6.5, 6, 0],
+    ["Frankfurt", "Prague", 7.0, 7, 1],
+    ["Frankfurt", "Milan", 7.5, 7, 1],
+    ["Frankfurt", "Venice", 9.0, 7, 1],
+
+    # Germany-east / central Europe
+    ["Berlin", "Hamburg", 1.8, 5, 0],
+    ["Berlin", "Munich", 4.5, 5, 0],
+    ["Berlin", "Prague", 4.7, 8, 0],
+    ["Berlin", "Vienna", 8.0, 6, 0],
+    ["Berlin", "Budapest", 11.0, 6, 1],
+    ["Berlin", "Zurich", 8.5, 6, 1],
+    ["Berlin", "Milan", 11.5, 7, 1],
+
+    ["Hamburg", "Munich", 5.8, 5, 0],
+    ["Hamburg", "Frankfurt", 3.8, 5, 0],
+    ["Hamburg", "Cologne", 4.0, 5, 0],
+    ["Hamburg", "Prague", 7.0, 7, 1],
+    ["Hamburg", "Vienna", 9.5, 6, 1],
+
+    ["Munich", "Vienna", 4.0, 7, 0],
+    ["Munich", "Zurich", 3.5, 7, 0],
+    ["Munich", "Prague", 5.8, 6, 1],
+    ["Munich", "Budapest", 7.0, 6, 1],
+    ["Munich", "Venice", 6.8, 9, 1],
+    ["Munich", "Milan", 7.0, 8, 1],
+    ["Munich", "Florence", 8.5, 8, 1],
+    ["Munich", "Rome", 10.0, 8, 1],
+    ["Munich", "Geneva", 6.5, 7, 1],
+    ["Munich", "Lyon", 8.0, 7, 1],
+
+    ["Prague", "Vienna", 4.4, 6, 0],
+    ["Prague", "Budapest", 7.0, 6, 0],
+    ["Prague", "Munich", 5.8, 6, 1],
+    ["Prague", "Zurich", 9.0, 7, 1],
+    ["Prague", "Venice", 10.0, 8, 1],
+    ["Prague", "Milan", 10.5, 8, 1],
+    ["Prague", "Rome", 13.0, 8, 2],
+
+    ["Vienna", "Budapest", 2.8, 5, 0],
+    ["Vienna", "Munich", 4.0, 7, 0],
+    ["Vienna", "Zurich", 8.0, 8, 0],
+    ["Vienna", "Venice", 7.5, 8, 1],
+    ["Vienna", "Milan", 10.0, 8, 1],
+    ["Vienna", "Florence", 10.5, 8, 1],
+    ["Vienna", "Rome", 12.0, 8, 1],
+    ["Vienna", "Geneva", 10.0, 8, 1],
+
+    ["Budapest", "Prague", 7.0, 6, 0],
+    ["Budapest", "Munich", 7.0, 6, 1],
+    ["Budapest", "Zurich", 11.0, 8, 1],
+    ["Budapest", "Venice", 12.0, 8, 1],
+    ["Budapest", "Milan", 13.0, 8, 1],
+    ["Budapest", "Rome", 15.0, 8, 2],
+
+    # Switzerland / France / Italy corridor
+    ["Zurich", "Geneva", 2.8, 7, 0],
+    ["Zurich", "Milan", 3.3, 7, 0],
+    ["Zurich", "Venice", 6.0, 7, 1],
+    ["Zurich", "Florence", 6.5, 7, 1],
+    ["Zurich", "Rome", 7.5, 7, 1],
+    ["Zurich", "Lyon", 5.0, 7, 1],
+    ["Zurich", "Nice", 8.5, 8, 1],
+    ["Zurich", "Barcelona", 11.0, 7, 1],
+
+    ["Geneva", "Lyon", 2.0, 7, 0],
+    ["Geneva", "Milan", 4.5, 7, 1],
+    ["Geneva", "Nice", 6.5, 8, 1],
+    ["Geneva", "Barcelona", 8.0, 7, 1],
+    ["Geneva", "Venice", 7.5, 7, 1],
+    ["Geneva", "Florence", 8.0, 7, 1],
+    ["Geneva", "Rome", 9.5, 7, 1],
+
+    ["Lyon", "Barcelona", 5.0, 6, 1],
+    ["Lyon", "Nice", 4.5, 7, 0],
+    ["Lyon", "Milan", 5.5, 7, 1],
+    ["Lyon", "Zurich", 5.0, 7, 1],
+    ["Lyon", "Venice", 8.0, 7, 1],
+    ["Lyon", "Florence", 8.5, 7, 1],
+    ["Lyon", "Rome", 10.0, 7, 1],
+
+    ["Barcelona", "Nice", 8.0, 7, 1],
+    ["Barcelona", "Geneva", 8.0, 7, 1],
+    ["Barcelona", "Zurich", 11.0, 7, 1],
+    ["Barcelona", "Milan", 12.0, 7, 1],
+    ["Barcelona", "Rome", 15.0, 7, 2],
+
+    ["Nice", "Milan", 5.0, 8, 1],
+    ["Nice", "Geneva", 6.5, 8, 1],
+    ["Nice", "Zurich", 8.5, 8, 1],
+    ["Nice", "Venice", 8.0, 8, 1],
+    ["Nice", "Florence", 7.5, 8, 1],
+    ["Nice", "Rome", 8.5, 8, 1],
+
+    # Italy
+    ["Milan", "Venice", 2.5, 6, 0],
+    ["Milan", "Florence", 2.0, 6, 0],
+    ["Milan", "Rome", 3.2, 6, 0],
+    ["Milan", "Nice", 5.0, 8, 1],
+    ["Milan", "Geneva", 4.5, 7, 1],
+    ["Milan", "Lyon", 5.5, 7, 1],
+    ["Milan", "Paris", 7.0, 6, 1],
+    ["Milan", "Munich", 7.0, 8, 1],
+    ["Milan", "Vienna", 10.0, 8, 1],
+
+    ["Venice", "Florence", 2.2, 6, 0],
+    ["Venice", "Rome", 3.8, 6, 0],
+    ["Venice", "Vienna", 7.5, 8, 1],
+    ["Venice", "Munich", 6.8, 9, 1],
+    ["Venice", "Zurich", 6.0, 7, 1],
+    ["Venice", "Nice", 8.0, 8, 1],
+    ["Venice", "Geneva", 7.5, 7, 1],
+    ["Venice", "Lyon", 8.0, 7, 1],
+    ["Venice", "Paris", 10.5, 7, 1],
+
+    ["Florence", "Rome", 1.5, 6, 0],
+    ["Florence", "Zurich", 6.5, 7, 1],
+    ["Florence", "Munich", 8.5, 8, 1],
+    ["Florence", "Vienna", 10.5, 8, 1],
+    ["Florence", "Nice", 7.5, 8, 1],
+    ["Florence", "Lyon", 8.5, 7, 1],
+    ["Florence", "Paris", 10.0, 7, 1],
+
+    ["Rome", "Zurich", 7.5, 7, 1],
+    ["Rome", "Munich", 10.0, 8, 1],
+    ["Rome", "Vienna", 12.0, 8, 1],
+    ["Rome", "Nice", 8.5, 8, 1],
+    ["Rome", "Lyon", 10.0, 7, 1],
+    ["Rome", "Paris", 11.3, 7, 1],
+    ["Rome", "Barcelona", 15.0, 7, 2],
+]
+
+with open("routes.csv", "w", newline="") as file:
+    writer = csv.writer(file)
+
+    writer.writerow([
+        "from_city",
+        "to_city",
+        "time_hours",
+        "scenic_score",
+        "changes"
+    ])
+
+    writer.writerows(routes)
+
+print("routes.csv has been created successfully.")
+print(f"{len(routes)} route entries were written.")

@@ -1,0 +1,5 @@
+B, A
+D, C
+F, E
+H, G
+J, I
